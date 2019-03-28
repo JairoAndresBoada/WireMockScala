@@ -1,5 +1,14 @@
 {
+  "detalleOk":{
   "nombre" : "Jairo",
   "apellido" : "Boada",
   "cedula" : "123456"
+  },
+  "detalleFailed":{
+  "status" : "500",
+  "mensaje" : "error"
+  }
 }
+
+
+

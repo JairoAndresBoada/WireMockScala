@@ -5,6 +5,7 @@ import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
+
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ Await, ExecutionContext, Future }
 import scala.io.Source
@@ -12,8 +13,9 @@ import org.scalatest._
 import spray.json._
 import com.DTO._
 import Matchers._
+import com.fasterxml.jackson.annotation.JacksonInject
 
-class Mytest extends FlatSpec with BeforeAndAfterEach {
+class Mytest @JacksonInject() extends FlatSpec with BeforeAndAfterEach {
 
   private val puerto = 7879
   private val url = "localhost"
@@ -26,7 +28,7 @@ class Mytest extends FlatSpec with BeforeAndAfterEach {
     Source.fromURL(getClass.getResource(s"$rutaArchivo"))("UTF-8").mkString
   }
 
-  val requestResponse = Future("{\n  \"status\": \"500\",\n  \"mensaje\": \"error\"\n}")
+  val requestFailed = Future(loadResourceFile("/com/test/services/Objetos.json"))
 
   def pruebaMockWireFailed(): Unit = {
     val path = s"/users"
@@ -35,18 +37,20 @@ class Mytest extends FlatSpec with BeforeAndAfterEach {
       .willReturn(aResponse()
         .withStatus(500)
         .withHeader("Content-Type", "application/json")
-        .withBody(loadResourceFile(Await.result(requestResponse, Duration.Inf)))))
+        .withBody(loadResourceFile(Await.result(requestFailed, Duration.Inf)))))
   }
 
   "Prueba ejemplo de WireMock Status 500" should "say hello" in {
+    println(s"el mensaje que esta llegado es $requestFailed")
     val request = HttpRequest(uri = "/users")
-    val response = requestResponse
+    val response = requestFailed
     val result: String = Await.result(response, Duration.Inf)
     val mensajeEnJson: JsValue = result.parseJson
-    val mensajeFinalizado: DetalleResponseFailed = mensajeEnJson.convertTo[DetalleResponseFailed]
+    val mensajeDetalle: DetalleResponse = mensajeEnJson.convertTo[DetalleResponse](DetalleResponse.detalleResponse)
+    val mensajeFinalizado: DetalleFailed = mensajeDetalle.detalleFailed
 
     mensajeFinalizado match {
-      case d: DetalleResponseFailed =>
+      case d: DetalleFailed =>
         d.status shouldBe "500"
         d.mensaje shouldBe "error"
 
@@ -67,14 +71,16 @@ class Mytest extends FlatSpec with BeforeAndAfterEach {
   }
 
   "Prueba ejemplo de WireMock Status 200" should "say hello" in {
+    println(s"el mensaje que esta llegado es $requestResponseOk")
     val request = HttpRequest(uri = "/users")
     val response = requestResponseOk
     val result: String = Await.result(response, Duration.Inf)
     val mensajeEnJson: JsValue = result.parseJson
-    val mensajeFinalizado: DetalleResponse = mensajeEnJson.convertTo[DetalleResponse]
+    val mensajeDetalle: DetalleResponse = mensajeEnJson.convertTo[DetalleResponse](DetalleResponse.detalleResponse)
+    val mensajeFinalizado: DetalleOk = mensajeDetalle.detalleOk
 
     mensajeFinalizado match {
-      case d: DetalleResponse =>
+      case d: DetalleOk =>
         d.nombre shouldBe "Jairo"
         d.apellido shouldBe "Boada"
         d.cedula shouldBe "123456"
@@ -82,5 +88,4 @@ class Mytest extends FlatSpec with BeforeAndAfterEach {
       case _ => fail()
     }
   }
-
 }

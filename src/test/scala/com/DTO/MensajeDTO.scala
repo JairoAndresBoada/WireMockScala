@@ -3,19 +3,21 @@ package com.DTO
 import spray.json.DefaultJsonProtocol
 
 case class DetalleResponse(
+  detalleOk: DetalleOk,
+  detalleFailed: DetalleFailed)
+
+case class DetalleOk(
   nombre: String,
   apellido: String,
   cedula: String)
 
-case class DetalleResponseFailed(
+case class DetalleFailed(
   status: String,
   mensaje: String)
 
 object DetalleResponse extends DefaultJsonProtocol {
-  implicit val formatMensajeOk = jsonFormat3(DetalleResponse.apply)
-}
-
-object DetalleResponseFailed extends DefaultJsonProtocol {
-  implicit val formatMensajeFailed = jsonFormat2(DetalleResponseFailed.apply)
+  implicit val detalleOk = jsonFormat3(DetalleOk.apply)
+  implicit val detalleFailed = jsonFormat2(DetalleFailed.apply)
+  implicit val detalleResponse = jsonFormat2(DetalleResponse.apply)
 }
 
